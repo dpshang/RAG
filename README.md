@@ -1,11 +1,11 @@
 # Improving RAG by Averaging
 This repository contains a capstone project for the [Erdős Institute Data Science Boot Camp](https://www.erdosinstitute.org/). The data used in this notebook is provided by Jason Morgan at AwareHQ.
 
-**Presentation slides**: [slides.pdf](https://github.com/gycheong/rag_by_averaging/blob/main/slides.pdf)
+**Presentation slides**: [slides.pdf](https://github.com/dpshang/RAG/blob/main/slides.pdf)
 
-**Remark**. We note that the evaluation numerics in slides are different as they were tested with different random number generators. However, the results in improvement we aim are consistent.
+**Remark**. We note that the evaluation numerics in slides are different as they were tested with different random number generators. However, the results in improvement we aim for are consistent.
 
-**Main notebook file**: [RAG.ipynb](https://github.com/gycheong/rag_by_averaging/blob/main/RAG.ipynb)
+**Main notebook file**: [RAG.ipynb](https://github.com/dpshang/RAG/blob/main/RAG-Colab.ipynb) in Colab
 
 **Files needed to reproduce the codes**:
 * [Reddit data](https://drive.google.com/file/d/1Xc-GCpAQFGfTUOHOxwBsCNFFB9klgF5A/view?usp=sharing): put it in the same folder as the notebook file
@@ -53,8 +53,8 @@ database.
 
 ## Naive RAG vs Averaging RAG
 
-* The **naive RAG** for us means that we find top 5 relevant comments to the query and use them to generate a response to the query using LLM.
-* For the **averaging RAG**, we generate more similar queries to the original query using synthetic query generators and re-rank the comments by the average cosine similarity (i.e., averaging the cosine similaities of each comment to all the possible queries). Then we use the top 5 comments to generate a response to the query using LLM.
+* The **naive RAG** for us means that we find the top 5 relevant comments to the query and use them to generate a response to the query using LLM.
+* For the **averaging RAG**, we generate more similar queries to the original query using synthetic query generators and re-rank the comments by the average cosine similarity (i.e., averaging the cosine similarities of each comment to all the possible queries). Then we use the top 5 comments to generate a response to the query using LLM.
 
 * **Clustering**: to speed up the runtime, we group the comments into clusters using K-means (K=4) clustering based on their vector representations with respect to cosine similarity. We stored the average vector representations of each cluster for quick comparison. This allowed us to cut the runtime down to under 1 second on average.
 
@@ -62,14 +62,14 @@ database.
 
 SBERT (Sentence Bert) is based on [BERT (Bidirectional Encoder Representations from Transformer)](https://arxiv.org/abs/1810.04805) developed by Google. From inspection, there are clear benefits of using SBERT over BERT for our purpose.
 
-1. BERT is designed to generate vectors that correspond to individual words (or more precisely, *subwords*) to a sentence, so each sentence is converted into not just a vector but a sequence of vectors. Hence, in order to examine the similaritiy of two sentences, we need to either pick one word or take the average of the vectors, which did not yield satisfying results.
+1. BERT is designed to generate vectors that correspond to individual words (or more precisely, *subwords*) to a sentence, so each sentence is converted into not just a vector but a sequence of vectors. Hence, in order to examine the similarity of two sentences, we need to either pick one word or take the average of the vectors, which did not yield satisfying results.
 
-2. Because BERT converts every subword as a vector, in order to fully use it, we need to use a lot more storage. In an experiement, examining 10400 comments required 11.8GB with BERT while it only required 91.6MB with SBERT.
+2. Because BERT converts every subword as a vector, in order to fully use it, we need to use a lot more storage. In an experiment, examining 10400 comments required 11.8GB with BERT while it only required 91.6MB with SBERT.
 
-3. For BERT, the query and the comments (i.e., information to answer the query) need to be proceeded together when we embedd them as (sequences of) vectors. For SBERT, we can vectorize the comments first and then indepedently vectorize the query later.
+3. For BERT, the query and the comments (i.e., information to answer the query) need to proceed together when we embed them as (sequences of) vectors. For SBERT, we can vectorize the comments first and then independently vectorize the query later.
 
-## Query and LLM generate responses from top 5 comments
-* Query: **How many PTOs does a regular employee have a year?**
+## Query and LLM generate responses from the top 5 comments
+* Query: **How many PTOs do a regular employee have a year?**
 * LLM Response with Naive RAG: **Regular employees typically earn 48 hours of paid time off per year, with the exception of a few states that have unlimited PTO by state law.**
 * LLM Response with Averaging RAG: **According to the passage, regular employees have a maximum of 48 hours of PTO per year.**
 
@@ -77,11 +77,11 @@ SBERT (Sentence Bert) is based on [BERT (Bidirectional Encoder Representations f
 
 ## Evaluation of retrieval
 
-Note that it is rather difficult to say which LLM responses are better. Moreover, we note that our goal is NOT to get the answer that is absolutely correct but a relevant one among the reddit comments that we put in. For example, the answer may change over time, unless we update the input comments.
+Note that it is rather difficult to say which LLM responses are better. Moreover, we note that our goal is NOT to get the answer that is absolutely correct but a relevant one among the Reddit comments that we put in. For example, the answer may change over time, unless we update the input comments.
 
-Hence, we use use both of the LLM responses as ground truths and compare the top 50 retrievals from the two methods:
-* Method 1: Naive RAG using cosine similairties against the original query
-* Method 2: Not-so-naive RAG using average cosine similairties against multiple similar queries, including the original one
+Hence, we use both of the LLM responses as ground truths and compare the top 50 retrievals from the two methods:
+* Method 1: Naive RAG using cosine similarities against the original query
+* Method 2: Not-so-naive RAG using average cosine similarities against multiple similar queries, including the original one
 
 ### Evaluation method 1: Cosine Precision
 
@@ -110,11 +110,11 @@ $$
 \text{Ranked Cosine Precision of } B := \frac{1}{K} \sum_{m = 1}^{K} \text{Cosine Precision of } B_m.
 $$
 
-Under this measurement, those comments ranked higher in the retrieved context will have a higher impact to the precision. We also see an improvement in our method from the naive RAG from 0.87982534 to 0.88779141 in this metric as well:
+Under this measurement, those comments ranked higher in the retrieved context will have a higher impact on the precision. We also see an improvement in our method from the naive RAG from 0.87982534 to 0.88779141 in this metric as well:
 
 ![image](https://github.com/gycheong/rag_by_averaging/assets/139825285/6d0d65e2-1347-4591-a312-b2ab8c7f62a0)
 
 
 ## Conclusion and future directions
 
-As we have seen in the example above, our averaging method improves the overall retrieval better by getting rid of possibly unrelated retrieved data by comparisions with multiple similar queries to the original one. The LLM API we are using took almost 30 seconds to generate responses, but it is evident that any stronger LLM we use would only make the process faster.
+As we have seen in the example above, our averaging method improves the overall retrieval by getting rid of possibly unrelated retrieved data by comparisons with multiple similar queries to the original one. The LLM API we are using took almost 30 seconds to generate responses, but it is evident that any stronger LLM we use would only make the process faster.
